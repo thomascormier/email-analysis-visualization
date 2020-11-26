@@ -118,19 +118,102 @@ def graph_number_of_mail_per_day(df):
 
 ########################################################################################
 #                                   Milestone 3
+#
+# In this Milestone, we worked on the most common topics in the subject and the content of the mails.
 ########################################################################################
 
 
 def most_commons_subject_topic(df):
-    pass
+    all_subjects = {}
+    container = ""
+    for sub in df.Subject:
+        container = container + str(sub)
+
+    splitted = container.split()
+
+    for string in splitted:
+        if string in all_subjects:
+            all_subjects[string] += 1
+        else:
+            all_subjects[string] = 1
+
+    # We only take the n most commons keys in the previous dict
+    n = 30
+    top_subjects = dict(sorted(all_subjects.items(), key=lambda item: item[1], reverse=True)[:n])
+
+
+    useless_subject = ['-', 'for', 'of', 'to', 'and', 'and', 'on', 'the', 'in', '&', 'from', 'with', 'at', 'FW:', '--',
+                       '2001', 'a', 'is', 'New', 'May']
+
+    most_commons_subjects = top_subjects
+    print(type(most_commons_subjects))
+    for us in useless_subject:
+        most_commons_subjects.pop(us, None)
+
+    print(most_commons_subjects)
+
+    keys = most_commons_subjects.keys()
+    values = most_commons_subjects.values()
+    plt.bar(keys, values)
+    plt.show()
+
+    return most_commons_subjects
 
 
 def most_commons_content_topic(df):
-    pass
+    all_contents = {}
+    container = ""
+    for c in df.content:
+        container = container + str(c)
 
+    splitted = container.split()
+
+    for string in splitted:
+        if string in all_contents:
+            all_contents[string] += 1
+        else:
+            all_contents[string] = 1
+
+    # We only take the n most commons keys in the previous dict
+    n = 115
+    top_contents = dict(sorted(all_contents.items(), key=lambda item: item[1], reverse=True)[:n])
+
+    useless_contents = ['>', 'that', 'be', 'you', 'will', 'I', 'The', 'have', 'by', 'this', 'are', 'as', '=20',
+                        'it', 'or', 'not', 'has', 'the', 'to', 'and', 'of', 'a', 'in', 'for', 'is', 'on', 'with', 'at',
+                        '-', 'from','we', 'your', 'an', 'was', 'would', 'its', '=', 'if', 'can', 'but', 'our', 'he',
+                        'any', 'which', 'all', 'about', 'they', 'more', 'been', 'AM', 'up', 'their', 'me', 'said',
+                        'Subject:', 'To:', 'PM', 'cc:', 'If', 'From:', 'also', 'out', 'new', '--', '?', '&', 'other',
+                        'get', 'who', 'some', 'one', 'do', 'had', 'were', 'his', 'We', 'may', 'than', 'This',
+                        'state', 'should', 'last', 'so', 'could', 'know', 'In', 'like', 'company', 'Please', 'please',
+                        'what', 'my', 'need', 'into', 'time', 'when', 'over', 'A', 'Sent:', 'these', 'no', 'two',
+                        'there', 'Message-----']
+
+
+
+    most_commons_contents = top_contents
+    print(type(most_commons_contents))
+    for uc in useless_contents:
+        most_commons_contents.pop(uc, None)
+
+    print(most_commons_contents)
+
+    keys = most_commons_contents.keys()
+    values = most_commons_contents.values()
+    plt.bar(keys, values)
+    plt.show()
+
+    return most_commons_contents
+
+
+# print(most_commons_subject_topic(df))
+print(most_commons_content_topic(df))
 
 ########################################################################################
 #                                   Milestone 4
+#
+# Relationship graph :
+#   -   Nodes size : number of occurrence as a sender or a receiver in the dataframe
+#   -   Edge (noeuds) : between every people who exchanges at least n emails (so that it stay readable)
 ########################################################################################
 
 
@@ -138,8 +221,13 @@ def graph_relationships(df, minNumberOfArcsUsed):
     pass
 
 
+graph_relationships(df, 1)
+
 ########################################################################################
 #                                   Milestone 5
+#
+# We want to create a Decision Tree that determine the categories of the main topic of the mail.
+# Then we want to display a Keywords Cloud to show the mains topics in our data
 ########################################################################################
 
 
@@ -147,22 +235,4 @@ def keywords_cloud(df):
     pass
 
 
-########################################################################################
-
-# TODO Milestone 3
-# In this Milestone, we worked on the most common topics in the subject and the content of the mails.
-most_commons_subject_topic(df)
-most_commons_content_topic(df)
-
-# TODO Milestone 4
-# Relationship graph :
-#   -   Nodes size : number of occurrence as a sender or a receiver in the dataframe
-#   -   Edge (noeuds) : between every people who exchanges at least n emails (so that it stay readable)
-graph_relationships(df, 1)
-
-# TODO Milestone 5
-# We want to create a Decision Tree that determine the categories of the main topic of the mail.
-# Then we want to display a Keywords Cloud to show the mains topics in our data
 keywords_cloud(df)
-
-
