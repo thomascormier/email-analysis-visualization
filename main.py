@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import networkx as nx
 from datetime import datetime as dt, timedelta as td
 
 ########################################################################################
@@ -41,14 +42,8 @@ def generate_clean_dataframe():
     # Sort rows by ascending date
     df = df.sort_values('Date')
 
-    # create a csv from this dataframe
-    # df.to_csv(r'data/df.csv', index=False, header=True)
-
     return df
 
-
-df = generate_clean_dataframe()
-print("Data is now cleaned and loaded in a Dataframe.")
 
 ########################################################################################
 #                                   Milestone 2
@@ -75,11 +70,12 @@ def graph_number_of_mail_per_hour(df):
     x, y = zip(*lists)
     # display results
     plt.plot(x, y)
-    plt.title('Number of mail received and sent per hour')
+    plt.title('Number of mails received and sent per hour')
     plt.ylabel('Number of mails')
     plt.xlabel('Hour')
     plt.grid(True)
-    plt.show()
+    plt.savefig("res/repartition_per_hour.png")
+    plt.close()
 
 
 def graph_number_of_mail_per_day(df):
@@ -92,8 +88,6 @@ def graph_number_of_mail_per_day(df):
     for i in range(delta.days + 1):
         repartition_per_day[str(sd + td(days=i))[:-9]] = 0
 
-    print('dict initialized')
-
     # Keep only date part when using pandas.to_datetime
     df['just_date'] = df['Date'].dt.date
     for row in df['just_date']:
@@ -103,18 +97,14 @@ def graph_number_of_mail_per_day(df):
     lists = repartition_per_day.items()
     # unpack a list of pairs into two tuples
     x, y = zip(*lists)
-    print('Data is ready. Start Plotting')
     # display results
     plt.plot(x, y)
-    plt.title('Number of mail received and sent per day')
+    plt.title('Number of mails received and sent per day')
     plt.ylabel('Number of mails')
     plt.xlabel('Date')
-    plt.grid(True)
-    plt.show()
+    plt.savefig("res/repartition_per_day.png")
+    plt.close()
 
-
-# graph_number_of_mail_per_hour(df)
-# graph_number_of_mail_per_day(df)
 
 ########################################################################################
 #                                   Milestone 3
@@ -129,35 +119,35 @@ def most_commons_subject_topic(df):
     for sub in df.Subject:
         container = container + str(sub)
 
-    splitted = container.split()
+    split = container.split()
 
-    for string in splitted:
+    for string in split:
         if string in all_subjects:
             all_subjects[string] += 1
         else:
             all_subjects[string] = 1
 
     # We only take the n most commons keys in the previous dict
-    n = 30
+    n = 22
     top_subjects = dict(sorted(all_subjects.items(), key=lambda item: item[1], reverse=True)[:n])
-
 
     useless_subject = ['-', 'for', 'of', 'to', 'and', 'and', 'on', 'the', 'in', '&', 'from', 'with', 'at', 'FW:', '--',
                        '2001', 'a', 'is', 'New', 'May']
 
     most_commons_subjects = top_subjects
-    print(type(most_commons_subjects))
     for us in useless_subject:
         most_commons_subjects.pop(us, None)
-
-    print(most_commons_subjects)
 
     keys = most_commons_subjects.keys()
     values = most_commons_subjects.values()
     plt.bar(keys, values)
-    plt.show()
+    plt.title('Most common subjects topics')
+    plt.ylabel('Number of occurrences')
+    plt.xlabel('Topics')
+    plt.savefig("res/most_commons_subjects.png")
+    plt.close()
 
-    return most_commons_subjects
+    # return most_commons_subjects
 
 
 def most_commons_content_topic(df):
@@ -166,16 +156,16 @@ def most_commons_content_topic(df):
     for c in df.content:
         container = container + str(c)
 
-    splitted = container.split()
+    split = container.split()
 
-    for string in splitted:
+    for string in split:
         if string in all_contents:
             all_contents[string] += 1
         else:
             all_contents[string] = 1
 
     # We only take the n most commons keys in the previous dict
-    n = 115
+    n = 100
     top_contents = dict(sorted(all_contents.items(), key=lambda item: item[1], reverse=True)[:n])
 
     useless_contents = ['>', 'that', 'be', 'you', 'will', 'I', 'The', 'have', 'by', 'this', 'are', 'as', '=20',
@@ -188,51 +178,120 @@ def most_commons_content_topic(df):
                         'what', 'my', 'need', 'into', 'time', 'when', 'over', 'A', 'Sent:', 'these', 'no', 'two',
                         'there', 'Message-----']
 
-
-
     most_commons_contents = top_contents
-    print(type(most_commons_contents))
     for uc in useless_contents:
         most_commons_contents.pop(uc, None)
-
-    print(most_commons_contents)
 
     keys = most_commons_contents.keys()
     values = most_commons_contents.values()
     plt.bar(keys, values)
-    plt.show()
+    plt.title('Most common contents topics')
+    plt.ylabel('Number of occurrences')
+    plt.xlabel('Topics')
+    plt.savefig("res/most_commons_contents.png")
+    plt.close()
 
-    return most_commons_contents
-
-
-# print(most_commons_subject_topic(df))
-print(most_commons_content_topic(df))
 
 ########################################################################################
 #                                   Milestone 4
 #
 # Relationship graph :
 #   -   Nodes size : number of occurrence as a sender or a receiver in the dataframe
-#   -   Edge (noeuds) : between every people who exchanges at least n emails (so that it stay readable)
+#   -   Edge : between every people who exchanges at least n emails (so that it stay readable)
 ########################################################################################
 
 
-def graph_relationships(df, minNumberOfArcsUsed):
-    pass
+def build_network_graph(df, n):
+    """
+    Generate a new dataframe much more suited to the users treatment
+    We create many tuples (sender, receiver) and we count their number occurrences.
 
+    :param df: our initial dataframe
+    :return: a new dataframe that only contains From, To
+    """
+    df = df.drop(columns=["id_mail", "Date", "Subject", "content", "user"])
 
-graph_relationships(df, 1)
+    # We create the empty graph
+    graph = {}
+
+    # We create an array of string containing all correspondents
+    correspondents = []
+
+    # We iterate on the dataframe
+    cpt = 0
+    print("In progress, wait until 100 for 100 000 rows to be processed")
+    for index, row in df.iterrows():
+        cpt += 1
+        if cpt % 1000 == 0:
+            print(int(cpt/1000))
+
+        # We rename our values for a better readability
+        sender = row['From']
+        receivers_field = row['To']
+        # We create an array receivers that stores all the receivers
+        receivers = []
+
+        # type treatment so that nan values are now a string "nan" or "Nan"
+        receivers_field = str(receivers_field)
+
+        if not (sender in correspondents):
+            correspondents.append(sender)
+
+        # We test if the receiver is a NaN value, if so, we drop the row
+        if receivers_field.lower() == "nan":
+                df.drop(index, inplace=True)
+            # Now the data is cleaner, we start our data processing
+        else:
+
+            # We test if there is several receivers by checking if their is a ", " in the receivers_field
+            if ", " in receivers_field:
+                receivers = receivers_field.split(", ")
+            for r in receivers:
+                if not(r in correspondents):
+                    correspondents.append(r)
+
+        for r in receivers:
+            # If the tuple is already in the graph, we increment its value
+            if tuple([sender, r]) in graph:
+                graph[sender, r] = graph[sender, r] + 1
+                # graph[r, sender] = graph[r, sender] + 1
+            # If not, we insert the tuple and set its value to 1
+            else:
+                graph[sender, r] = 1
+                # graph[r, sender] = 1
+
+    top_n_data = dict(sorted(graph.items(), key=lambda item: item[1], reverse=True)[:n])
+
+    print("Start building graph")
+
+    graph = nx.Graph()
+
+    for d in top_n_data:
+        graph.add_edge(d[0][1], d[1][0])
+
+    nx.draw(graph)
+    plt.savefig("res/network_graph.png")
+    plt.close()
+
 
 ########################################################################################
-#                                   Milestone 5
-#
-# We want to create a Decision Tree that determine the categories of the main topic of the mail.
-# Then we want to display a Keywords Cloud to show the mains topics in our data
-########################################################################################
 
+# Milestone 1
+df = generate_clean_dataframe()
+print("Data cleaned and loaded in a Dataframe.")
 
-def keywords_cloud(df):
-    pass
+# Milestone 2
+graph_number_of_mail_per_hour(df)
+print("res/repartition_per_hour.png generated")
+graph_number_of_mail_per_day(df)
+print("res/repartition_per_day.png generated")
 
+# Milestone 3
+most_commons_subject_topic(df)
+print("res/most_commons_subjects.png generated")
+most_commons_content_topic(df)
+print("res/most_commons_contents.png generated")
 
-keywords_cloud(df)
+# Milestone 4
+build_network_graph(df, 100)
+print("res/network_graph.png generated")
